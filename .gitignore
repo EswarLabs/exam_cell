@@ -1,0 +1,29 @@
+# Environment & Configuration
+.env
+.env.local
+.env.*.local
+
+# Uploads & Temporary Files
+uploads/
+!uploads/.gitkeep
+
+# OS Files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/
+.idea/
+*.sublime-*
+*.code-workspace
+
+# Dependencies (if added in future)
+vendor/
+node_modules/
+
+# Logs & Caches
+*.log
+.cache
