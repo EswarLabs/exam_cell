@@ -1,7 +1,6 @@
 <?php
 require_once 'includes/auth.php';
 
-// If already logged in, go to dashboard
 if (isLoggedIn()) {
     header('Location: dashboard.php');
     exit;
@@ -9,7 +8,6 @@ if (isLoggedIn()) {
 
 $error = '';
 
-// Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
@@ -29,20 +27,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Exam Cell Login — NBKRIST</title>
+    <title>Admin Login - NBKRIST Exam Cell</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <style>
         :root {
-            --primary-blue: #1e40af;
-            --dark-blue: #1e3a8a;
-            --light-blue: #dbeafe;
-            --lighter-blue: #f0f9ff;
-            --border-blue: #bfdbfe;
-            --text-dark: #1f2937;
-            --text-muted: #6b7280;
+            --primary: #003366;
+            --secondary: #0052a3;
+            --accent: #1a7fd4;
+            --light: #f5f7fa;
+            --lighter: #ecf0f5;
+            --text-primary: #1a1a1a;
+            --text-secondary: #666666;
+            --border: #e0e6ed;
             --white: #ffffff;
-            --bg-light: #f8fafc;
+            --success: #28a745;
+            --warning: #ffc107;
+            --danger: #dc3545;
         }
 
         * {
@@ -51,201 +52,287 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             box-sizing: border-box;
         }
 
+        html, body {
+            height: 100%;
+        }
+
         body {
-            background: linear-gradient(135deg, var(--lighter-blue) 0%, var(--bg-light) 100%);
-            min-height: 100vh;
+            background: linear-gradient(135deg, #003366 0%, #0052a3 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            min-height: 100vh;
+            color: var(--text-primary);
         }
 
-        .login-card {
-            background: var(--white);
-            border-radius: 16px;
-            box-shadow: 0 10px 40px rgba(30, 64, 175, 0.1);
-            overflow: hidden;
+        .login-wrapper {
+            display: flex;
             width: 100%;
-            max-width: 420px;
-            border: 1px solid var(--border-blue);
+            height: 100vh;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
         }
 
-        .login-accent-bar {
-            height: 5px;
-            background: linear-gradient(90deg, var(--primary-blue), var(--border-blue));
+        .login-container {
+            background: var(--white);
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            max-width: 450px;
+            width: 100%;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .login-header {
-            background: linear-gradient(135deg, var(--lighter-blue), var(--bg-light));
-            color: var(--primary-blue);
-            padding: 2.5rem 2rem;
+            background: linear-gradient(135deg, #003366 0%, #0052a3 100%);
+            color: var(--white);
+            padding: 40px 30px 30px;
             text-align: center;
-            border-bottom: 1px solid var(--border-blue);
+            position: relative;
+            overflow: hidden;
         }
 
-        .login-header .college-seal {
-            width: 80px;
-            height: 80px;
-            background: var(--light-blue);
-            border: 2px solid var(--border-blue);
+        .login-header::before {
+            content: '';
+            position: absolute;
+            right: -100px;
+            top: -100px;
+            width: 300px;
+            height: 300px;
+            background: rgba(255, 255, 255, 0.1);
             border-radius: 50%;
+        }
+
+        .college-logo {
+            width: 70px;
+            height: 70px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 3px solid var(--white);
+            border-radius: 50%;
+            margin: 0 auto 15px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 1.25rem;
             font-size: 2.5rem;
-            color: var(--primary-blue);
+            position: relative;
+            z-index: 1;
         }
 
-        .login-header h4 {
+        .login-header h2 {
+            font-size: 1.8rem;
             font-weight: 700;
-            margin: 0;
+            margin: 15px 0 5px;
             letter-spacing: 0.5px;
-            color: var(--primary-blue);
-            font-size: 1.5rem;
+            position: relative;
+            z-index: 1;
         }
 
         .login-header p {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            margin: 0.5rem 0 0;
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin: 0;
+            position: relative;
+            z-index: 1;
         }
 
         .login-body {
-            padding: 2rem;
+            padding: 35px;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 8px;
+            color: #721c24;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 22px;
         }
 
         .form-label {
             font-weight: 600;
-            font-size: 0.85rem;
-            color: var(--text-dark);
-            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            display: block;
+            font-size: 0.95rem;
         }
 
         .form-control {
-            border: 1px solid var(--border-blue);
+            border: 2px solid var(--border);
             border-radius: 8px;
-            padding: 0.65rem 0.75rem;
+            padding: 12px 15px;
             font-size: 0.95rem;
-            transition: all 0.2s;
+            transition: all 0.3s ease;
+            background-color: var(--light);
         }
 
         .form-control:focus {
-            border-color: var(--primary-blue);
-            box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
             outline: none;
+            border-color: var(--accent);
+            background-color: var(--white);
+            box-shadow: 0 0 0 4px rgba(26, 127, 212, 0.1);
         }
 
-        .input-group-text {
-            background: var(--lighter-blue);
-            border: 1px solid var(--border-blue);
-            color: var(--primary-blue);
-            font-weight: 600;
+        .input-group {
+            position: relative;
         }
 
-        .input-group .form-control {
-            border-left: none;
+        .input-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--accent);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .form-control.with-icon {
+            padding-left: 45px;
         }
 
         .btn-login {
-            background: var(--primary-blue);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
             border: none;
             color: var(--white);
             width: 100%;
-            padding: 0.8rem;
-            font-weight: 600;
+            padding: 14px;
+            font-weight: 700;
             border-radius: 8px;
             letter-spacing: 0.5px;
-            transition: all 0.2s;
-            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            font-size: 1rem;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
         .btn-login:hover {
-            background: var(--dark-blue);
-            color: var(--white);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(30, 64, 175, 0.2);
+            background: linear-gradient(135deg, #002244 0%, #004080 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 51, 102, 0.3);
+        }
+
+        .btn-login:active {
+            transform: translateY(0);
         }
 
         .login-footer {
+            background: var(--lighter);
+            padding: 20px 35px;
             text-align: center;
-            padding: 1rem 2rem 1.5rem;
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            border-top: 1px solid var(--border-blue);
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            border-top: 1px solid var(--border);
         }
 
-        .alert {
-            border: 1px solid var(--border-blue);
-            background: #fee2e2;
-            color: #991b1b;
-            border-radius: 8px;
-            padding: 0.75rem 1rem;
+        @media (max-width: 480px) {
+            .login-container {
+                max-width: 100%;
+            }
+
+            .login-body {
+                padding: 25px;
+            }
+
+            .login-header {
+                padding: 30px 20px 20px;
+            }
+
+            .login-header h2 {
+                font-size: 1.5rem;
+            }
         }
     </style>
 </head>
 <body>
 
-<div class="login-card">
-    <div class="login-accent-bar"></div>
-    <div class="login-header">
-        <div class="college-seal">
-            <i class="bi bi-mortarboard-fill"></i>
+<div class="login-wrapper">
+    <div class="login-container">
+        <div class="login-header">
+            <div class="college-logo">
+                <i class="bi bi-mortarboard-fill"></i>
+            </div>
+            <h2>NBKRIST</h2>
+            <p>Examination Cell - Secure Admin Access</p>
         </div>
-        <h4>NBKRIST</h4>
-        <p>Examination Cell — Admin Portal</p>
-    </div>
 
-    <div class="login-body">
-        <?php if (!empty($error)): ?>
-            <div class="alert alert-danger d-flex align-items-center py-2" role="alert">
-                <i class="bi bi-exclamation-circle me-2"></i>
+        <div class="login-body">
+            <?php if (!empty($error)): ?>
+            <div class="alert-error">
+                <i class="bi bi-exclamation-circle-fill"></i>
                 <span><?php echo htmlspecialchars($error); ?></span>
             </div>
-        <?php endif; ?>
+            <?php endif; ?>
 
-        <form method="POST" action="login.php" autocomplete="off">
-            <div class="mb-3">
-                <label for="username" class="form-label">Username</label>
-                <div class="input-group">
-                    <span class="input-group-text"><i class="bi bi-person"></i></span>
-                    <input
-                        type="text"
-                        class="form-control"
-                        id="username"
-                        name="username"
-                        placeholder="Enter username"
-                        value="<?php echo htmlspecialchars($_POST['username'] ?? ''); ?>"
-                        required
-                        autofocus
-                    >
+            <form method="POST" action="login.php" autocomplete="off">
+                <div class="form-group">
+                    <label for="username" class="form-label">
+                        <i class="bi bi-person"></i> Username
+                    </label>
+                    <div class="input-group">
+                        <i class="bi bi-person input-icon"></i>
+                        <input
+                            type="text"
+                            class="form-control with-icon"
+                            id="username"
+                            name="username"
+                            placeholder="your username"
+                            value="<?php echo htmlspecialchars($_POST['username'] ?? ''); ?>"
+                            required
+                            autofocus
+                        >
+                    </div>
                 </div>
-            </div>
 
-            <div class="mb-4">
-                <label for="password" class="form-label">Password</label>
-                <div class="input-group">
-                    <span class="input-group-text"><i class="bi bi-lock"></i></span>
-                    <input
-                        type="password"
-                        class="form-control"
-                        id="password"
-                        name="password"
-                        placeholder="Enter password"
-                        required
-                    >
+                <div class="form-group">
+                    <label for="password" class="form-label">
+                        <i class="bi bi-lock"></i> Password
+                    </label>
+                    <div class="input-group">
+                        <i class="bi bi-lock input-icon"></i>
+                        <input
+                            type="password"
+                            class="form-control with-icon"
+                            id="password"
+                            name="password"
+                            placeholder="your password"
+                            required
+                        >
+                    </div>
                 </div>
-            </div>
 
-            <button type="submit" class="btn btn-login">
-                <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
-            </button>
-        </form>
-    </div>
+                <button type="submit" class="btn-login">
+                    <i class="bi bi-box-arrow-in-right"></i> Sign In
+                </button>
+            </form>
+        </div>
 
-    <div class="login-footer">
-        &copy; <?php echo date('Y'); ?> NBKR Institute of Science &amp; Technology
+        <div class="login-footer">
+            <strong>NBKRIST</strong> | Exam Cell Administration<br>
+            <small>&copy; <?php echo date('Y'); ?> All Rights Reserved</small>
+        </div>
     </div>
 </div>
 

@@ -3,8 +3,8 @@ require_once 'includes/auth.php';
 requireLogin();
 
 $conn = getDBConnection();
-$success = '';
-$error   = '';
+$success = $_GET['success'] ?? '';
+$error   = $_GET['error'] ?? '';
 
 // Add Notification
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_notification') {
@@ -14,6 +14,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_n
 
     if (empty($title)) {
         $error = 'Notification title is required.';
+        header("Location: dashboard.php?error=" . urlencode($error));
+        exit;
     } else {
         $pdf_filename = null;
         $pdf_path     = null;
@@ -26,10 +28,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_n
 
             if ($file['error'] !== UPLOAD_ERR_OK) {
                 $error = 'File upload failed. Please try again.';
+                header("Location: dashboard.php?error=" . urlencode($error));
+                exit;
             } elseif (!in_array($file['type'], $allowed)) {
                 $error = 'Only PDF files are allowed.';
+                header("Location: dashboard.php?error=" . urlencode($error));
+                exit;
             } elseif ($file['size'] > $max_size) {
                 $error = 'File size must be under 5 MB.';
+                header("Location: dashboard.php?error=" . urlencode($error));
+                exit;
             } else {
                 if (!is_dir(UPLOAD_DIR)) {
                     mkdir(UPLOAD_DIR, 0755, true);
@@ -39,11 +47,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_n
                 $ext          = 'pdf';
                 $safe_title   = preg_replace('/[^a-zA-Z0-9_-]/', '_', substr($title, 0, 30));
                 $pdf_filename = date('Ymd_His') . '_' . $safe_title . '.' . $ext;
-                $dest         = $upload_dir . $pdf_filename;
+                $dest         = UPLOAD_DIR . $pdf_filename;
 
                 if (!move_uploaded_file($file['tmp_name'], $dest)) {
                     $error = 'Could not save the uploaded file. Check folder permissions.';
-                    $pdf_filename = null;
+                    header("Location: dashboard.php?error=" . urlencode($error));
+                    exit;
                 } else {
                     $pdf_path = UPLOAD_URL . $pdf_filename;
                 }
@@ -51,19 +60,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_n
         }
 
 
-        if (empty($error)) {
-            $stmt = $conn->prepare(
-                "INSERT INTO exam_notifications (title, description, pdf_filename, pdf_path, posted_by)
-                 VALUES (?, ?, ?, ?, ?)"
-            );
-            $stmt->bind_param("ssssi", $title, $description, $pdf_filename, $pdf_path, $admin_id);
-            if ($stmt->execute()) {
-                $success = 'Notification posted successfully!';
-            } else {
-                $error = 'Database error. Could not save notification.';
-            }
-            $stmt->close();
+        $stmt = $conn->prepare(
+            "INSERT INTO exam_notifications (title, description, pdf_filename, pdf_path, posted_by)
+             VALUES (?, ?, ?, ?, ?)"
+        );
+        $stmt->bind_param("ssssi", $title, $description, $pdf_filename, $pdf_path, $admin_id);
+        if ($stmt->execute()) {
+            $success = 'Notification posted successfully!';
+            header("Location: dashboard.php?success=" . urlencode($success));
+        } else {
+            $error = 'Database error. Could not save notification.';
+            header("Location: dashboard.php?error=" . urlencode($error));
         }
+        $stmt->close();
+        exit;
     }
 }
 
@@ -87,8 +97,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delet
         $stmt->bind_param("i", $notif_id);
         $stmt->execute();
         $stmt->close();
-        $success = 'Notification deleted.';
+        header("Location: dashboard.php?success=" . urlencode('Notification deleted.'));
     }
+    exit;
 }
 
 // Toggle Active/Inactive
@@ -96,8 +107,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'toggl
     $notif_id = (int)($_POST['notif_id'] ?? 0);
     if ($notif_id > 0) {
         $conn->query("UPDATE exam_notifications SET is_active = NOT is_active WHERE id = $notif_id");
-        $success = 'Notification status updated.';
+        header("Location: dashboard.php?success=" . urlencode('Notification status updated.'));
     }
+    exit;
 }
 
 
@@ -120,16 +132,18 @@ $conn->close();
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <style>
         :root {
-            --primary-blue: #1e40af;
-            --dark-blue: #1e3a8a;
-            --light-blue: #dbeafe;
-            --lighter-blue: #f0f9ff;
-            --border-blue: #bfdbfe;
-            --text-dark: #1f2937;
-            --text-muted: #6b7280;
+            --primary: #003366;
+            --secondary: #0052a3;
+            --accent: #1a7fd4;
+            --light: #f5f7fa;
+            --lighter: #ecf0f5;
+            --text-primary: #1a1a1a;
+            --text-secondary: #666666;
+            --border: #e0e6ed;
             --white: #ffffff;
-            --bg-light: #f8fafc;
-            --bg-lighter: #f0f9ff;
+            --success: #28a745;
+            --warning: #ffc107;
+            --danger: #dc3545;
         }
 
         * {
@@ -139,281 +153,289 @@ $conn->close();
         }
 
         body {
-            background: var(--bg-light);
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            color: var(--text-dark);
+            background: var(--lighter);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text-primary);
         }
 
         /* Topbar */
         .topbar {
-            background: var(--white);
-            color: var(--text-dark);
-            padding: 1rem 1.5rem;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: var(--white);
+            padding: 1.2rem 1.5rem;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            border-bottom: 2px solid var(--border-blue);
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 2px 8px rgba(0, 51, 102, 0.15);
         }
 
         .topbar .brand {
             font-weight: 700;
-            font-size: 1.1rem;
-            letter-spacing: 0.3px;
-            color: var(--primary-blue);
+            font-size: 1.2rem;
+            letter-spacing: 0.5px;
+            color: var(--white);
         }
 
         .topbar .brand span {
-            color: var(--dark-blue);
+            opacity: 0.9;
         }
 
         .topbar .user-info {
-            font-size: 0.85rem;
-            color: var(--text-muted);
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.8);
         }
 
         .btn-logout {
-            background: var(--lighter-blue);
-            color: var(--primary-blue);
-            border: 1px solid var(--border-blue);
+            background: rgba(255, 255, 255, 0.15);
+            color: var(--white);
+            border: 1px solid rgba(255, 255, 255, 0.3);
             border-radius: 6px;
-            padding: 0.4rem 1rem;
-            font-size: 0.82rem;
-            font-weight: 500;
-            transition: all 0.2s;
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.3s;
             cursor: pointer;
         }
 
         .btn-logout:hover {
-            background: var(--light-blue);
-            color: var(--dark-blue);
-            border-color: var(--primary-blue);
+            background: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.5);
         }
 
         /* Accent bar */
         .accent-bar {
-            height: 3px;
-            background: linear-gradient(90deg, var(--primary-blue), var(--border-blue));
+            height: 0;
         }
 
         /* Cards */
         .section-card {
             background: var(--white);
             border-radius: 12px;
-            border: 1px solid var(--border-blue);
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-            margin-bottom: 1.5rem;
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            margin-bottom: 2rem;
             overflow: hidden;
         }
 
         .section-card .card-header {
-            background: var(--lighter-blue);
-            color: var(--primary-blue);
-            border-bottom: 2px solid var(--border-blue);
-            padding: 1rem 1.25rem;
-            font-weight: 600;
+            background: linear-gradient(135deg, rgba(0, 51, 102, 0.05) 0%, rgba(26, 127, 212, 0.05) 100%);
+            color: var(--primary);
+            border-bottom: 2px solid var(--accent);
+            padding: 1.2rem 1.5rem;
+            font-weight: 700;
             display: flex;
             align-items: center;
             gap: 0.75rem;
+            font-size: 1.1rem;
         }
 
         .section-card .card-body {
-            padding: 1.5rem;
+            padding: 2rem;
         }
 
         /* Form */
         .form-label {
             font-weight: 600;
-            font-size: 0.85rem;
-            color: var(--text-dark);
-            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            margin-bottom: 0.6rem;
         }
 
         .form-control,
         .form-select {
-            border: 1px solid var(--border-blue);
+            border: 2px solid var(--border);
             border-radius: 8px;
-            padding: 0.6rem 0.75rem;
+            padding: 0.7rem 0.9rem;
             font-size: 0.95rem;
-            transition: all 0.2s;
+            transition: all 0.3s;
         }
 
         .form-control:focus,
         .form-select:focus {
-            border-color: var(--primary-blue);
-            box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px rgba(26, 127, 212, 0.1);
             outline: none;
         }
 
         .form-text {
             font-size: 0.8rem;
-            color: var(--text-muted);
+            color: var(--text-secondary);
             margin-top: 0.25rem;
         }
 
         .btn-primary-custom {
-            background: var(--primary-blue);
+            background: linear-gradient(135deg, var(--secondary) 0%, var(--accent) 100%);
             border: none;
             color: var(--white);
-            padding: 0.65rem 1.5rem;
+            padding: 0.75rem 1.8rem;
             border-radius: 8px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            transition: all 0.2s;
+            font-weight: 700;
+            font-size: 0.95rem;
+            transition: all 0.3s;
             cursor: pointer;
         }
 
         .btn-primary-custom:hover {
-            background: var(--dark-blue);
+            background: linear-gradient(135deg, #004080 0%, #1a6fb8 100%);
             color: var(--white);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(30, 64, 175, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0, 51, 102, 0.2);
         }
 
         /* Notification table */
         .notif-table thead th {
-            background: var(--lighter-blue);
-            color: var(--primary-blue);
+            background: linear-gradient(135deg, rgba(0, 51, 102, 0.05) 0%, rgba(26, 127, 212, 0.05) 100%);
+            color: var(--primary);
             font-weight: 700;
             font-size: 0.8rem;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            border-bottom: 2px solid var(--border-blue);
-            padding: 0.75rem;
+            border-bottom: 2px solid var(--accent);
+            padding: 0.85rem;
         }
 
         .notif-table tbody tr {
-            border-bottom: 1px solid var(--border-blue);
+            border-bottom: 1px solid var(--border);
             transition: background 0.2s;
         }
 
         .notif-table tbody tr:hover {
-            background: var(--bg-lighter);
+            background: rgba(26, 127, 212, 0.02);
         }
 
         .notif-table td {
-            padding: 0.75rem;
+            padding: 0.85rem;
             vertical-align: middle;
         }
 
         .badge-active {
-            background: #d1fae5;
-            color: #065f46;
+            background: #e3f2fd;
+            color: #1a7fd4;
             padding: 0.4rem 0.8rem;
             border-radius: 6px;
-            font-weight: 500;
-            font-size: 0.8rem;
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
             display: inline-block;
         }
 
         .badge-inactive {
-            background: #fee2e2;
-            color: #991b1b;
+            background: #f3e5f5;
+            color: #7c3aed;
             padding: 0.4rem 0.8rem;
             border-radius: 6px;
-            font-weight: 500;
-            font-size: 0.8rem;
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
             display: inline-block;
         }
 
         .badge-nopdf {
-            background: #e5e7eb;
-            color: #4b5563;
+            background: #eeeeee;
+            color: #616161;
             padding: 0.4rem 0.8rem;
             border-radius: 6px;
-            font-weight: 500;
-            font-size: 0.8rem;
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
             display: inline-block;
         }
 
         .btn-sm {
-            padding: 0.4rem 0.65rem;
+            padding: 0.5rem 0.8rem;
             font-size: 0.8rem;
             border-radius: 6px;
-            transition: all 0.2s;
+            transition: all 0.3s;
+            font-weight: 600;
         }
 
         .btn-outline-secondary {
-            color: var(--primary-blue);
-            border: 1px solid var(--border-blue);
+            color: var(--accent);
+            border: 1px solid var(--accent);
+            background: transparent;
         }
 
         .btn-outline-secondary:hover {
-            background: var(--lighter-blue);
-            border-color: var(--primary-blue);
-            color: var(--primary-blue);
+            background: rgba(26, 127, 212, 0.1);
+            border-color: var(--accent);
+            color: var(--accent);
         }
 
         .btn-outline-danger {
-            color: #dc2626;
-            border: 1px solid #fecaca;
+            color: #dc3545;
+            border: 1px solid #dc3545;
+            background: transparent;
         }
 
         .btn-outline-danger:hover {
-            background: #fee2e2;
-            border-color: #dc2626;
-            color: #dc2626;
+            background: rgba(220, 53, 69, 0.1);
+            border-color: #dc3545;
+            color: #dc3545;
         }
 
         /* Stats */
         .stat-box {
             background: var(--white);
             border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-            border: 1px solid var(--border-blue);
-            border-left: 4px solid var(--primary-blue);
-            transition: all 0.2s;
+            padding: 1.8rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--accent);
+            transition: all 0.3s;
         }
 
         .stat-box:hover {
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 51, 102, 0.15);
+            transform: translateY(-3px);
         }
 
         .stat-box .num {
-            font-size: 2rem;
+            font-size: 2.2rem;
             font-weight: 800;
-            color: var(--primary-blue);
-            margin-bottom: 0.5rem;
+            color: var(--secondary);
+            margin-bottom: 0.6rem;
         }
 
         .stat-box .label {
             font-size: 0.75rem;
-            color: var(--text-muted);
+            color: var(--text-secondary);
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            font-weight: 600;
+            font-weight: 700;
         }
 
         /* Alerts */
         .alert {
-            border: 1px solid var(--border-blue);
+            border: 1px solid var(--border);
             border-radius: 8px;
-            background: var(--lighter-blue);
-            color: var(--primary-blue);
-            padding: 0.75rem 1rem;
+            background: var(--lighter);
+            color: var(--accent);
+            padding: 1rem;
         }
 
         .alert-success {
-            background: #d1fae5;
-            border-color: #a7f3d0;
-            color: #065f46;
+            background: #e8f5e9;
+            border-color: #c8e6c9;
+            color: #2e7d32;
         }
 
         .alert-danger {
-            background: #fee2e2;
-            border-color: #fecaca;
-            color: #991b1b;
+            background: #ffebee;
+            border-color: #ffcdd2;
+            color: #c62828;
         }
 
         .btn-close {
-            opacity: 0.5;
-            transition: opacity 0.2s;
+            opacity: 0.6;
+            transition: opacity 0.3s;
+            color: inherit;
         }
 
         .btn-close:hover {
-            opacity: 0.8;
+            opacity: 1;
         }
 
         /* Responsive */
@@ -436,15 +458,15 @@ $conn->close();
 <body>
 
 <div class="topbar">
-    <div class="brand">NBKRIST &mdash; <span>Exam Cell</span> Admin</div>
+    <div class="brand">NBKRIST &mdash; <span>Exam Cell Admin</span></div>
     <div class="d-flex align-items-center gap-3">
         <span class="user-info d-none d-md-block">
             <i class="bi bi-person-circle me-1"></i>
             <?php echo htmlspecialchars($_SESSION['exam_admin_name']); ?>
         </span>
-        <form method="POST" action="logout.php" style="margin:0;">
-            <button type="submit" class="btn btn-logout">
-                <i class="bi bi-box-arrow-right me-1"></i>Logout
+        <form method="POST" action="logout.php" style="margin: 0;">
+            <button type="submit" class="btn-logout">
+                <i class="bi bi-box-arrow-right"></i> Logout
             </button>
         </form>
     </div>

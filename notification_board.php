@@ -3,7 +3,6 @@ require_once __DIR__ . '/includes/db_config.php';
 
 $conn = getDBConnection();
 
-// Fetch only active notifications, newest first
 $notifications = $conn->query(
     "SELECT title, description, pdf_path, created_at
      FROM exam_notifications
@@ -13,25 +12,26 @@ $notifications = $conn->query(
 
 $conn->close();
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Exam Notifications</title>
+    <title>Exam Notifications - NBKRIST</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <style>
         :root {
-            --primary-blue: #1e40af;
-            --light-blue: #dbeafe;
-            --lighter-blue: #f0f9ff;
-            --dark-blue: #1e3a8a;
-            --border-blue: #bfdbfe;
-            --text-dark: #1f2937;
-            --text-muted: #6b7280;
+            --primary: #003366;
+            --secondary: #0052a3;
+            --accent: #1a7fd4;
+            --light: #f5f7fa;
+            --lighter: #ecf0f5;
+            --text-primary: #1a1a1a;
+            --text-secondary: #666666;
+            --border: #e0e6ed;
             --white: #ffffff;
+            --success: #28a745;
         }
 
         * {
@@ -41,281 +41,330 @@ $conn->close();
         }
 
         body {
-            background: #f8fafc;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            color: var(--text-dark);
+            background-color: var(--light);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text-primary);
+            line-height: 1.6;
         }
 
-        .exam-notification-board {
-            padding: 2rem 0;
-            min-height: 100vh;
+        /* Header */
+        .page-header {
+            background: linear-gradient(135deg, #003366 0%, #0052a3 100%);
+            color: var(--white);
+            padding: 50px 20px 40px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
         }
 
-        .notif-container {
+        .page-header::before {
+            content: '';
+            position: absolute;
+            right: -100px;
+            top: -100px;
+            width: 300px;
+            height: 300px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+        }
+
+        .page-header::after {
+            content: '';
+            position: absolute;
+            left: -80px;
+            bottom: -80px;
+            width: 250px;
+            height: 250px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 50%;
+        }
+
+        .header-content {
             max-width: 900px;
             margin: 0 auto;
-            padding: 0 1rem;
+            position: relative;
+            z-index: 1;
         }
 
-        .notif-header {
-            margin-bottom: 2.5rem;
-            text-align: center;
-        }
-
-        .notif-header-title {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--primary-blue);
-            margin-bottom: 0.5rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.75rem;
-        }
-
-        .notif-header-icon {
-            width: 40px;
-            height: 40px;
-            background: var(--light-blue);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--primary-blue);
-            font-size: 1.5rem;
-        }
-
-        .notif-header-subtitle {
-            color: var(--text-muted);
-            font-size: 0.95rem;
-        }
-
-        .notif-empty {
-            background: var(--white);
-            border: 1px solid var(--border-blue);
-            border-radius: 12px;
-            padding: 3rem 2rem;
-            text-align: center;
-            color: var(--text-muted);
-        }
-
-        .notif-empty-icon {
+        .header-icon {
             font-size: 3rem;
-            color: var(--light-blue);
-            margin-bottom: 1rem;
+            margin-bottom: 15px;
+            opacity: 0.95;
         }
 
-        .notif-list {
+        .page-header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            letter-spacing: 0.5px;
+        }
+
+        .page-header p {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            margin: 0;
+        }
+
+        /* Main Content */
+        .notifications-section {
+            padding: 50px 20px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .notifications-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: var(--primary);
+        }
+
+        .notifications-subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 30px;
+            font-size: 1rem;
+        }
+
+        .notifications-grid {
             display: flex;
             flex-direction: column;
-            gap: 1rem;
+            gap: 20px;
         }
 
-        .notif-card {
+        .notification-item {
             background: var(--white);
-            border: 1px solid var(--border-blue);
+            border: 1px solid var(--border);
             border-radius: 12px;
-            padding: 1.5rem;
+            padding: 30px;
             transition: all 0.3s ease;
             display: flex;
-            justify-content: space-between;
             align-items: flex-start;
-            gap: 1.5rem;
+            gap: 25px;
         }
 
-        .notif-card:hover {
-            border-color: var(--primary-blue);
-            box-shadow: 0 4px 12px rgba(30, 64, 175, 0.1);
-            transform: translateY(-2px);
+        .notification-item:hover {
+            border-color: var(--accent);
+            box-shadow: 0 8px 25px rgba(0, 51, 102, 0.15);
+            transform: translateY(-4px);
         }
 
-        .notif-card-left {
-            display: flex;
-            gap: 1rem;
-            align-items: flex-start;
-            flex: 1;
-        }
-
-        .notif-card-icon {
-            width: 44px;
-            height: 44px;
-            min-width: 44px;
-            background: var(--lighter-blue);
-            border-radius: 10px;
+        .notification-icon {
+            width: 60px;
+            height: 60px;
+            min-width: 60px;
+            background: linear-gradient(135deg, rgba(26, 127, 212, 0.1) 0%, rgba(0, 82, 163, 0.1) 100%);
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: var(--primary-blue);
-            font-size: 1.5rem;
+            color: var(--secondary);
+            font-size: 1.8rem;
         }
 
-        .notif-card-content {
+        .notification-content {
             flex: 1;
         }
 
-        .notif-card-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: var(--text-dark);
-            margin-bottom: 0.5rem;
+        .notification-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 8px;
         }
 
-        .notif-card-description {
+        .notification-description {
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            line-height: 1.8;
             font-size: 0.95rem;
-            color: var(--text-muted);
-            line-height: 1.6;
-            margin-bottom: 0.75rem;
         }
 
-        .notif-card-meta {
+        .notification-meta {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 15px;
             font-size: 0.85rem;
-            color: var(--text-muted);
+            color: var(--text-secondary);
         }
 
-        .notif-card-meta i {
-            color: var(--primary-blue);
+        .notification-meta i {
+            color: var(--accent);
             font-size: 0.9rem;
         }
 
-        .notif-card-right {
+        .notification-actions {
             display: flex;
             align-items: center;
+            gap: 10px;
         }
 
-        .notif-pdf-btn {
-            background: var(--primary-blue);
+        .btn-download {
+            background: linear-gradient(135deg, var(--secondary) 0%, var(--accent) 100%);
             color: var(--white);
             border: none;
             border-radius: 8px;
-            padding: 0.6rem 1.2rem;
+            padding: 10px 20px;
+            font-weight: 600;
             font-size: 0.9rem;
-            font-weight: 500;
-            white-space: nowrap;
             transition: all 0.3s ease;
             text-decoration: none;
             display: inline-flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 8px;
             cursor: pointer;
+            white-space: nowrap;
         }
 
-        .notif-pdf-btn:hover {
-            background: var(--dark-blue);
+        .btn-download:hover {
+            background: linear-gradient(135deg, #004080 0%, #1a6fb8 100%);
             color: var(--white);
             text-decoration: none;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(30, 64, 175, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0, 51, 102, 0.2);
         }
 
-        .notif-pdf-btn i {
+        .empty-state {
+            text-align: center;
+            padding: 60px 40px;
+            background: var(--white);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .empty-icon {
+            font-size: 4rem;
+            color: var(--lighter);
+            margin-bottom: 20px;
+        }
+
+        .empty-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+        }
+
+        .empty-text {
+            color: var(--text-secondary);
             font-size: 1rem;
         }
 
-        /* Responsive Design */
+        /* Footer */
+        .page-footer {
+            background: linear-gradient(135deg, #003366 0%, #0052a3 100%);
+            color: var(--white);
+            text-align: center;
+            padding: 30px 20px;
+            margin-top: 50px;
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        /* Responsive */
         @media (max-width: 768px) {
-            .notif-card {
-                flex-direction: column;
-                padding: 1.25rem;
+            .page-header h1 {
+                font-size: 1.8rem;
             }
 
-            .notif-card-right {
+            .page-header p {
+                font-size: 0.95rem;
+            }
+
+            .notification-item {
+                flex-direction: column;
+                padding: 20px;
+                gap: 15px;
+            }
+
+            .notification-title {
+                font-size: 1.1rem;
+            }
+
+            .notification-actions {
                 width: 100%;
             }
 
-            .notif-pdf-btn {
+            .btn-download {
                 width: 100%;
                 justify-content: center;
             }
 
-            .notif-header-title {
-                font-size: 1.5rem;
-            }
-
-            .notif-header {
-                margin-bottom: 2rem;
+            .notifications-section {
+                padding: 30px 20px;
             }
         }
     </style>
 </head>
 <body>
 
-<!-- =====================================================
-     EXAM CELL NOTIFICATION BOARD
-     Minimal Clean Design with Blue & White Theme
-     ===================================================== -->
-
-<section class="exam-notification-board" id="exam-notifications">
-    <div class="notif-container">
-
-        <!-- Header -->
-        <div class="notif-header">
-            <div class="notif-header-title">
-                <div class="notif-header-icon">
-                    <i class="bi bi-bell"></i>
-                </div>
-                <span>Exam Notifications</span>
-            </div>
-            <p class="notif-header-subtitle">Latest updates from the Exam Cell</p>
+<!-- Header -->
+<div class="page-header">
+    <div class="header-content">
+        <div class="header-icon">
+            <i class="bi bi-megaphone-fill"></i>
         </div>
-
-        <!-- Notifications List -->
-        <?php if ($notifications->num_rows === 0): ?>
-            <div class="notif-empty">
-                <div class="notif-empty-icon">
-                    <i class="bi bi-inbox"></i>
-                </div>
-                <p>No notifications available at the moment.</p>
-                <p style="font-size: 0.85rem;">Check back soon for updates from the Exam Cell.</p>
-            </div>
-        <?php else: ?>
-            <div class="notif-list">
-                <?php while ($n = $notifications->fetch_assoc()): ?>
-                <div class="notif-card">
-                    <!-- Left: Icon + Content -->
-                    <div class="notif-card-left">
-                        <div class="notif-card-icon">
-                            <i class="bi bi-file-earmark-pdf"></i>
-                        </div>
-                        <div class="notif-card-content">
-                            <div class="notif-card-title">
-                                <?php echo htmlspecialchars($n['title']); ?>
-                            </div>
-                            <?php if (!empty($n['description'])): ?>
-                                <div class="notif-card-description">
-                                    <?php echo nl2br(htmlspecialchars($n['description'])); ?>
-                                </div>
-                            <?php endif; ?>
-                            <div class="notif-card-meta">
-                                <i class="bi bi-calendar2-event"></i>
-                                <span><?php echo date('M d, Y', strtotime($n['created_at'])); ?></span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Right: PDF Button -->
-                    <?php if (!empty($n['pdf_path'])): ?>
-                        <div class="notif-card-right">
-                            <a href="<?php echo htmlspecialchars($n['pdf_path']); ?>"
-                               target="_blank"
-                               class="notif-pdf-btn">
-                                <i class="bi bi-download"></i>
-                                <span>Download</span>
-                            </a>
-                        </div>
-                    <?php endif; ?>
-                </div>
-                <?php endwhile; ?>
-            </div>
-        <?php endif; ?>
-
+        <h1>Exam Notifications</h1>
+        <p>Official announcements from NBKRIST Examination Cell</p>
     </div>
+</div>
+
+<!-- Main Content -->
+<section class="notifications-section">
+    <?php if ($notifications->num_rows === 0): ?>
+    <div class="empty-state">
+        <div class="empty-icon">
+            <i class="bi bi-inbox"></i>
+        </div>
+        <div class="empty-title">No Notifications</div>
+        <p class="empty-text">There are currently no active notifications. Please check back soon for updates.</p>
+    </div>
+    <?php else: ?>
+    <h2 class="notifications-title">Latest Updates</h2>
+    <p class="notifications-subtitle">
+        <i class="bi bi-info-circle"></i> 
+        Stay informed with the latest exam-related announcements
+    </p>
+    <div class="notifications-grid">
+        <?php while ($n = $notifications->fetch_assoc()): ?>
+        <div class="notification-item">
+            <div class="notification-icon">
+                <i class="bi bi-bell-fill"></i>
+            </div>
+            <div class="notification-content">
+                <h3 class="notification-title"><?php echo htmlspecialchars($n['title']); ?></h3>
+                <?php if (!empty($n['description'])): ?>
+                <p class="notification-description">
+                    <?php echo nl2br(htmlspecialchars($n['description'])); ?>
+                </p>
+                <?php endif; ?>
+                <div class="notification-meta">
+                    <span>
+                        <i class="bi bi-calendar-event"></i>
+                        <?php echo date('d M Y, g:i A', strtotime($n['created_at'])); ?>
+                    </span>
+                </div>
+            </div>
+            <?php if (!empty($n['pdf_path'])): ?>
+            <div class="notification-actions">
+                <a href="<?php echo htmlspecialchars($n['pdf_path']); ?>"
+                   target="_blank"
+                   class="btn-download">
+                    <i class="bi bi-file-pdf-fill"></i>
+                    PDF
+                </a>
+            </div>
+            <?php endif; ?>
+        </div>
+        <?php endwhile; ?>
+    </div>
+    <?php endif; ?>
 </section>
 
-<!-- ===== END EXAM CELL NOTIFICATION BOARD ===== -->
+<!-- Footer -->
+<div class="page-footer">
+    <strong>NBKRIST Examination Cell</strong> | Keeping You Informed
+    <br><small>&copy; <?php echo date('Y'); ?> All Rights Reserved</small>
+</div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
