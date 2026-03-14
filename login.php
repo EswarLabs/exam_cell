@@ -24,6 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -44,6 +45,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             --success: #28a745;
             --warning: #ffc107;
             --danger: #dc3545;
+            --shadow-sm: 0 4px 14px rgba(0, 51, 102, 0.08);
+            --shadow-md: 0 14px 36px rgba(0, 51, 102, 0.18);
         }
 
         * {
@@ -52,12 +55,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             box-sizing: border-box;
         }
 
-        html, body {
+        html,
+        body {
             height: 100%;
         }
 
         body {
-            background: linear-gradient(135deg, #003366 0%, #0052a3 100%);
+            background: linear-gradient(135deg, #c7cacd 0%, #aab0b6 100%);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex;
             align-items: center;
@@ -78,7 +82,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .login-container {
             background: var(--white);
             border-radius: 12px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border);
             overflow: hidden;
             max-width: 450px;
             width: 100%;
@@ -90,6 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 opacity: 0;
                 transform: translateY(30px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -183,13 +189,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-size: 0.95rem;
             transition: all 0.3s ease;
             background-color: var(--light);
+            box-shadow: var(--shadow-sm);
         }
 
         .form-control:focus {
             outline: none;
             border-color: var(--accent);
             background-color: var(--white);
-            box-shadow: 0 0 0 4px rgba(26, 127, 212, 0.1);
+            box-shadow: 0 0 0 4px rgba(26, 127, 212, 0.1), var(--shadow-sm);
         }
 
         .input-group {
@@ -230,8 +237,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         .btn-login:hover {
             background: linear-gradient(135deg, #002244 0%, #004080 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(0, 51, 102, 0.3);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
         }
 
         .btn-login:active {
@@ -266,75 +273,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     </style>
 </head>
+
 <body>
 
-<div class="login-wrapper">
-    <div class="login-container">
-        <div class="login-header">
-            <div class="college-logo">
-                <i class="bi bi-mortarboard-fill"></i>
-            </div>
-            <h2>NBKRIST</h2>
-            <p>Examination Cell - Secure Admin Access</p>
-        </div>
-
-        <div class="login-body">
-            <?php if (!empty($error)): ?>
-            <div class="alert-error">
-                <i class="bi bi-exclamation-circle-fill"></i>
-                <span><?php echo htmlspecialchars($error); ?></span>
-            </div>
-            <?php endif; ?>
-
-            <form method="POST" action="login.php" autocomplete="off">
-                <div class="form-group">
-                    <label for="username" class="form-label">
-                        <i class="bi bi-person"></i> Username
-                    </label>
-                    <div class="input-group">
-                        <i class="bi bi-person input-icon"></i>
-                        <input
-                            type="text"
-                            class="form-control with-icon"
-                            id="username"
-                            name="username"
-                            placeholder="your username"
-                            value="<?php echo htmlspecialchars($_POST['username'] ?? ''); ?>"
-                            required
-                            autofocus
-                        >
-                    </div>
+    <div class="login-wrapper">
+        <div class="login-container">
+            <div class="login-header">
+                <div class="college-logo">
+                    <i class="bi bi-mortarboard-fill"></i>
                 </div>
+                <h2>NBKRIST</h2>
+                <p>Examination Cell - Secure Admin Access</p>
+            </div>
 
-                <div class="form-group">
-                    <label for="password" class="form-label">
-                        <i class="bi bi-lock"></i> Password
-                    </label>
-                    <div class="input-group">
-                        <i class="bi bi-lock input-icon"></i>
-                        <input
-                            type="password"
-                            class="form-control with-icon"
-                            id="password"
-                            name="password"
-                            placeholder="your password"
-                            required
-                        >
+            <div class="login-body">
+                <?php if (!empty($error)): ?>
+                    <div class="alert-error">
+                        <i class="bi bi-exclamation-circle-fill"></i>
+                        <span><?php echo htmlspecialchars($error); ?></span>
                     </div>
-                </div>
+                <?php endif; ?>
 
-                <button type="submit" class="btn-login">
-                    <i class="bi bi-box-arrow-in-right"></i> Sign In
-                </button>
-            </form>
-        </div>
+                <form method="POST" action="login.php" autocomplete="off">
+                    <div class="form-group">
+                        <label for="username" class="form-label">
+                            <i class="bi bi-person"></i> Username
+                        </label>
+                        <div class="input-group">
+                            <i class="bi bi-person input-icon"></i>
+                            <input type="text" class="form-control with-icon" id="username" name="username"
+                                placeholder="your username"
+                                value="<?php echo htmlspecialchars($_POST['username'] ?? ''); ?>" required autofocus>
+                        </div>
+                    </div>
 
-        <div class="login-footer">
-            <strong>NBKRIST</strong> | Exam Cell Administration<br>
-            <small>&copy; <?php echo date('Y'); ?> All Rights Reserved</small>
+                    <div class="form-group">
+                        <label for="password" class="form-label">
+                            <i class="bi bi-lock"></i> Password
+                        </label>
+                        <div class="input-group">
+                            <i class="bi bi-lock input-icon"></i>
+                            <input type="password" class="form-control with-icon" id="password" name="password"
+                                placeholder="your password" required>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-login">
+                        <i class="bi bi-box-arrow-in-right"></i> Sign In
+                    </button>
+                </form>
+            </div>
+
+            <div class="login-footer">
+                <strong>NBKRIST</strong> | Exam Cell Administration<br>
+                <small>&copy; <?php echo date('Y'); ?> All Rights Reserved</small>
+            </div>
         </div>
     </div>
-</div>
 
 </body>
+
 </html>

@@ -19,6 +19,7 @@ Thumbs.db
 .idea/
 *.sublime-*
 *.code-workspace
+.dist/
 
 # Dependencies (if added in future)
 vendor/

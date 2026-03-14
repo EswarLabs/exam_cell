@@ -3,35 +3,42 @@ require_once __DIR__ . '/includes/db_config.php';
 
 $conn = getDBConnection();
 
-$notifications = $conn->query(
+$result = $conn->query(
     "SELECT title, description, pdf_path, created_at
      FROM exam_notifications
      WHERE is_active = 1
      ORDER BY created_at DESC"
 );
 
+$notifications = [];
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $row['search_text'] = strtolower(trim($row['title'] . ' ' . ($row['description'] ?? '')));
+        $notifications[] = $row;
+    }
+}
+
 $conn->close();
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Exam Notifications - NBKRIST</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <style>
         :root {
             --primary: #003366;
             --secondary: #0052a3;
-            --accent: #1a7fd4;
             --light: #f5f7fa;
-            --lighter: #ecf0f5;
             --text-primary: #1a1a1a;
             --text-secondary: #666666;
             --border: #e0e6ed;
             --white: #ffffff;
-            --success: #28a745;
+            --shadow-sm: 0 4px 14px rgba(0, 51, 102, 0.08);
+            --shadow-md: 0 12px 28px rgba(0, 51, 102, 0.12);
         }
 
         * {
@@ -40,331 +47,334 @@ $conn->close();
             box-sizing: border-box;
         }
 
+        [hidden] {
+            display: none !important;
+        }
+
         body {
-            background-color: var(--light);
+            background: var(--light);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             color: var(--text-primary);
-            line-height: 1.6;
+            line-height: 1.5;
         }
 
-        /* Header */
         .page-header {
-            background: linear-gradient(135deg, #003366 0%, #0052a3 100%);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
             color: var(--white);
-            padding: 50px 20px 40px;
+            padding: 42px 20px;
             text-align: center;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .page-header::before {
-            content: '';
-            position: absolute;
-            right: -100px;
-            top: -100px;
-            width: 300px;
-            height: 300px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 50%;
-        }
-
-        .page-header::after {
-            content: '';
-            position: absolute;
-            left: -80px;
-            bottom: -80px;
-            width: 250px;
-            height: 250px;
-            background: rgba(255, 255, 255, 0.08);
-            border-radius: 50%;
-        }
-
-        .header-content {
-            max-width: 900px;
-            margin: 0 auto;
-            position: relative;
-            z-index: 1;
-        }
-
-        .header-icon {
-            font-size: 3rem;
-            margin-bottom: 15px;
-            opacity: 0.95;
+            box-shadow: var(--shadow-sm);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
         }
 
         .page-header h1 {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 10px;
-            letter-spacing: 0.5px;
+            font-size: 2rem;
+            margin-bottom: 8px;
         }
 
         .page-header p {
-            font-size: 1.1rem;
             opacity: 0.95;
-            margin: 0;
-        }
-
-        /* Main Content */
-        .notifications-section {
-            padding: 50px 20px;
-            max-width: 1000px;
-            margin: 0 auto;
-        }
-
-        .notifications-title {
-            font-size: 1.8rem;
-            font-weight: 700;
-            margin-bottom: 10px;
-            color: var(--primary);
-        }
-
-        .notifications-subtitle {
-            color: var(--text-secondary);
-            margin-bottom: 30px;
             font-size: 1rem;
         }
 
-        .notifications-grid {
+        .content {
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 30px 20px 50px;
+        }
+
+        .toolbar {
             display: flex;
-            flex-direction: column;
-            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: end;
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+
+        .toolbar h2 {
+            font-size: 1.45rem;
+            color: var(--primary);
+            margin-bottom: 4px;
+        }
+
+        .toolbar p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .search-wrap {
+            position: relative;
+            min-width: min(100%, 360px);
+            width: 360px;
+            max-width: 100%;
+        }
+
+        .search-wrap i {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--secondary);
+            font-size: 0.9rem;
+        }
+
+        .search-input {
+            width: 100%;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 11px 12px 11px 34px;
+            font-size: 0.95rem;
+            outline: none;
+            background: var(--white);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .search-input:focus {
+            border-color: var(--secondary);
+            box-shadow: 0 0 0 3px rgba(0, 82, 163, 0.1);
+        }
+
+        .notifications-grid {
+            display: grid;
+            gap: 14px;
         }
 
         .notification-item {
             background: var(--white);
             border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 30px;
-            transition: all 0.3s ease;
+            border-radius: 10px;
+            padding: 18px;
             display: flex;
-            align-items: flex-start;
-            gap: 25px;
+            align-items: start;
+            justify-content: space-between;
+            gap: 16px;
+            box-shadow: var(--shadow-sm);
+            transition: box-shadow 0.2s ease, transform 0.2s ease;
         }
 
         .notification-item:hover {
-            border-color: var(--accent);
-            box-shadow: 0 8px 25px rgba(0, 51, 102, 0.15);
-            transform: translateY(-4px);
-        }
-
-        .notification-icon {
-            width: 60px;
-            height: 60px;
-            min-width: 60px;
-            background: linear-gradient(135deg, rgba(26, 127, 212, 0.1) 0%, rgba(0, 82, 163, 0.1) 100%);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--secondary);
-            font-size: 1.8rem;
-        }
-
-        .notification-content {
-            flex: 1;
+            box-shadow: var(--shadow-md);
+            transform: translateY(-1px);
         }
 
         .notification-title {
-            font-size: 1.3rem;
+            font-size: 1.08rem;
             font-weight: 700;
             color: var(--primary);
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
 
         .notification-description {
             color: var(--text-secondary);
-            margin-bottom: 12px;
-            line-height: 1.8;
-            font-size: 0.95rem;
+            font-size: 0.93rem;
+            margin-bottom: 10px;
+            white-space: pre-line;
         }
 
         .notification-meta {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            font-size: 0.85rem;
             color: var(--text-secondary);
-        }
-
-        .notification-meta i {
-            color: var(--accent);
-            font-size: 0.9rem;
-        }
-
-        .notification-actions {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .btn-download {
-            background: linear-gradient(135deg, var(--secondary) 0%, var(--accent) 100%);
-            color: var(--white);
-            border: none;
-            border-radius: 8px;
-            padding: 10px 20px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            transition: all 0.3s ease;
-            text-decoration: none;
+            font-size: 0.84rem;
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            cursor: pointer;
+        }
+
+        .btn-download {
+            background: var(--secondary);
+            color: var(--white);
+            border-radius: 7px;
+            border: 1px solid var(--secondary);
+            text-decoration: none;
+            font-size: 0.88rem;
+            font-weight: 600;
+            padding: 9px 14px;
             white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
         }
 
         .btn-download:hover {
-            background: linear-gradient(135deg, #004080 0%, #1a6fb8 100%);
+            background: #004a94;
+            border-color: #004a94;
             color: var(--white);
-            text-decoration: none;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 15px rgba(0, 51, 102, 0.2);
         }
 
-        .empty-state {
+        .empty-state,
+        .filter-empty-state {
             text-align: center;
-            padding: 60px 40px;
             background: var(--white);
-            border-radius: 12px;
             border: 1px solid var(--border);
-        }
-
-        .empty-icon {
-            font-size: 4rem;
-            color: var(--lighter);
-            margin-bottom: 20px;
-        }
-
-        .empty-title {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            margin-bottom: 10px;
-        }
-
-        .empty-text {
+            border-radius: 10px;
+            padding: 40px 24px;
             color: var(--text-secondary);
-            font-size: 1rem;
+            box-shadow: var(--shadow-sm);
         }
 
-        /* Footer */
+        .empty-state i,
+        .filter-empty-state i {
+            font-size: 2rem;
+            color: #9eb1c2;
+            margin-bottom: 10px;
+            display: inline-block;
+        }
+
+        .empty-state h3,
+        .filter-empty-state h3 {
+            font-size: 1.2rem;
+            color: var(--primary);
+            margin-bottom: 8px;
+        }
+
+        .filter-empty-state {
+            margin-bottom: 12px;
+        }
+
         .page-footer {
-            background: linear-gradient(135deg, #003366 0%, #0052a3 100%);
-            color: var(--white);
             text-align: center;
-            padding: 30px 20px;
-            margin-top: 50px;
+            padding: 22px 16px 30px;
+            color: #5f7286;
             font-size: 0.9rem;
-            opacity: 0.9;
         }
 
-        /* Responsive */
         @media (max-width: 768px) {
-            .page-header h1 {
-                font-size: 1.8rem;
+            .page-header {
+                padding: 32px 16px;
             }
 
-            .page-header p {
-                font-size: 0.95rem;
+            .page-header h1 {
+                font-size: 1.65rem;
+            }
+
+            .content {
+                padding: 24px 14px 40px;
+            }
+
+            .toolbar {
+                align-items: stretch;
+            }
+
+            .search-wrap {
+                width: 100%;
             }
 
             .notification-item {
                 flex-direction: column;
-                padding: 20px;
-                gap: 15px;
-            }
-
-            .notification-title {
-                font-size: 1.1rem;
-            }
-
-            .notification-actions {
-                width: 100%;
+                align-items: stretch;
             }
 
             .btn-download {
                 width: 100%;
                 justify-content: center;
             }
-
-            .notifications-section {
-                padding: 30px 20px;
-            }
         }
     </style>
 </head>
+
 <body>
 
-<!-- Header -->
-<div class="page-header">
-    <div class="header-content">
-        <div class="header-icon">
-            <i class="bi bi-megaphone-fill"></i>
-        </div>
+    <header class="page-header">
         <h1>Exam Notifications</h1>
         <p>Official announcements from NBKRIST Examination Cell</p>
-    </div>
-</div>
+    </header>
 
-<!-- Main Content -->
-<section class="notifications-section">
-    <?php if ($notifications->num_rows === 0): ?>
-    <div class="empty-state">
-        <div class="empty-icon">
-            <i class="bi bi-inbox"></i>
-        </div>
-        <div class="empty-title">No Notifications</div>
-        <p class="empty-text">There are currently no active notifications. Please check back soon for updates.</p>
-    </div>
-    <?php else: ?>
-    <h2 class="notifications-title">Latest Updates</h2>
-    <p class="notifications-subtitle">
-        <i class="bi bi-info-circle"></i> 
-        Stay informed with the latest exam-related announcements
-    </p>
-    <div class="notifications-grid">
-        <?php while ($n = $notifications->fetch_assoc()): ?>
-        <div class="notification-item">
-            <div class="notification-icon">
-                <i class="bi bi-bell-fill"></i>
-            </div>
-            <div class="notification-content">
-                <h3 class="notification-title"><?php echo htmlspecialchars($n['title']); ?></h3>
-                <?php if (!empty($n['description'])): ?>
-                <p class="notification-description">
-                    <?php echo nl2br(htmlspecialchars($n['description'])); ?>
-                </p>
-                <?php endif; ?>
-                <div class="notification-meta">
-                    <span>
-                        <i class="bi bi-calendar-event"></i>
-                        <?php echo date('d M Y, g:i A', strtotime($n['created_at'])); ?>
-                    </span>
+    <main class="content">
+        <?php if (count($notifications) === 0): ?>
+            <section class="empty-state">
+                <i class="bi bi-inbox"></i>
+                <h3>No Notifications</h3>
+                <p>There are currently no active notifications. Please check back soon.</p>
+            </section>
+        <?php else: ?>
+            <section class="toolbar">
+                <div>
+                    <h2>Latest Updates</h2>
+                    <p>Simple list view with quick search.</p>
                 </div>
-            </div>
-            <?php if (!empty($n['pdf_path'])): ?>
-            <div class="notification-actions">
-                <a href="<?php echo htmlspecialchars($n['pdf_path']); ?>"
-                   target="_blank"
-                   class="btn-download">
-                    <i class="bi bi-file-pdf-fill"></i>
-                    PDF
-                </a>
-            </div>
-            <?php endif; ?>
-        </div>
-        <?php endwhile; ?>
-    </div>
-    <?php endif; ?>
-</section>
+                <label class="search-wrap" for="noticeSearch">
+                    <i class="bi bi-search"></i>
+                    <input id="noticeSearch" class="search-input" type="search" placeholder="Search notifications"
+                        autocomplete="off">
+                </label>
+            </section>
 
-<!-- Footer -->
-<div class="page-footer">
-    <strong>NBKRIST Examination Cell</strong> | Keeping You Informed
-    <br><small>&copy; <?php echo date('Y'); ?> All Rights Reserved</small>
-</div>
+            <section id="filterEmptyState" class="filter-empty-state" hidden>
+                <i class="bi bi-search"></i>
+                <h3>No matching notifications</h3>
+                <p>Try a different keyword.</p>
+            </section>
+
+            <section class="notifications-grid" id="notificationList">
+                <?php foreach ($notifications as $n): ?>
+                    <article class="notification-item"
+                        data-search="<?php echo htmlspecialchars($n['search_text'], ENT_QUOTES, 'UTF-8'); ?>">
+                        <div class="notification-content">
+                            <h3 class="notification-title"><?php echo htmlspecialchars($n['title'], ENT_QUOTES, 'UTF-8'); ?>
+                            </h3>
+
+                            <?php if (!empty($n['description'])): ?>
+                                <p class="notification-description">
+                                    <?php echo htmlspecialchars($n['description'], ENT_QUOTES, 'UTF-8'); ?>
+                                </p>
+                            <?php endif; ?>
+
+                            <div class="notification-meta">
+                                <i class="bi bi-calendar-event"></i>
+                                <?php echo date('d M Y, g:i A', strtotime($n['created_at'])); ?>
+                            </div>
+                        </div>
+
+                        <?php if (!empty($n['pdf_path'])): ?>
+                            <a class="btn-download" href="<?php echo htmlspecialchars($n['pdf_path'], ENT_QUOTES, 'UTF-8'); ?>"
+                                target="_blank" rel="noopener noreferrer">
+                                <i class="bi bi-file-pdf-fill"></i>
+                                View PDF
+                            </a>
+                        <?php endif; ?>
+                    </article>
+                <?php endforeach; ?>
+            </section>
+        <?php endif; ?>
+    </main>
+
+    <footer class="page-footer">
+        <strong>NBKRIST Examination Cell</strong><br>
+        &copy; <?php echo date('Y'); ?> All Rights Reserved
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var searchInput = document.getElementById('noticeSearch');
+            var cards = Array.prototype.slice.call(document.querySelectorAll('.notification-item'));
+            var filterEmptyState = document.getElementById('filterEmptyState');
+
+            if (!searchInput || cards.length === 0 || !filterEmptyState) {
+                return;
+            }
+
+            function applyFilter() {
+                var term = searchInput.value.toLowerCase().trim();
+                var visibleCount = 0;
+
+                cards.forEach(function (card) {
+                    var text = card.getAttribute('data-search') || '';
+                    var match = text.indexOf(term) !== -1;
+                    card.hidden = !match;
+
+                    if (match) {
+                        visibleCount++;
+                    }
+                });
+
+                filterEmptyState.hidden = visibleCount !== 0;
+            }
+
+            searchInput.addEventListener('input', applyFilter);
+            applyFilter();
+        });
+    </script>
 
 </body>
+
 </html>

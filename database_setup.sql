@@ -21,6 +21,6 @@ CREATE TABLE IF NOT EXISTS exam_notifications (
 INSERT INTO exam_cell_admins (username, password, full_name)
 VALUES (
     'examcell',
-    '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uZutLimOa',
+    '$2a$12$3k17c4QWNcTU./7LcBBSxOhtVu5o0GY5690lcAVRTg1hGHwU3Otni',
     'Exam Cell Administrator'
 );

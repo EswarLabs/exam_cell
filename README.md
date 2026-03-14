@@ -1,119 +1,102 @@
-# NBKRIST Exam Cell
+# NBKRIST Exam Cell Notification System
 
-Admin dashboard for managing exam notifications and announcements.
+Simple PHP + MySQL project for:
 
-## Project Structure
+- Admin login and notification management
+- Public exam notification board with search
+- Optional PDF attachments per notification
 
-```
+## Current Project Structure
+
+```text
 exam_cell/
-├── login.php                  Admin login
-├── dashboard.php              Admin dashboard
-├── logout.php                 Logout handler
-├── notification_board.php     Public board (embeddable)
-├── database_setup.sql         Initial database schema
+├── dashboard.php                # Admin panel (post / toggle / delete)
+├── database_setup.sql           # DB schema + default admin seed
+├── index.php                    # Redirects to dashboard
+├── login.php                    # Admin login
+├── logout.php                   # Session logout
+├── notification_board.php       # Public notification board
 ├── includes/
-│   ├── db_config.php          Database configuration (DO NOT COMMIT)
-│   ├── auth.php               Authentication helpers
-│   └── .htaccess              Blocks direct access to includes/
+│   ├── .htaccess                # Blocks direct includes access
+│   ├── auth.php                 # Auth/session helpers
+│   └── db_config.php            # DB + upload config
 ├── uploads/
-│   └── notifications/         PDF storage (auto-created)
-├── .env.example               Environment template
-├── .gitignore                 Git ignore rules
-└── README.md                  This file
+│   ├── .gitkeep
+│   └── notifications/           # Uploaded PDFs
+├── .gitignore
+└── README.md
 ```
 
-## Quick Start
+## Feature Summary
 
-### 1. Prerequisites
+- Secure admin login with hashed password verification
+- Post new notifications with optional PDF upload
+- Toggle active/inactive status
+- Delete notification + remove uploaded PDF file
+- Public board lists only active notifications
+- Live search on public notification board
 
-- PHP 7.4+
-- MySQL 5.7+
-- Apache with mod_rewrite
+## Setup (Local / XAMPP)
 
-### 2. Installation
+1. Place project in `c:\xampp\htdocs\exam_cell`
+2. Create MySQL database (default name used in config: `examcell`)
+3. Import `database_setup.sql`
+4. Update credentials in `includes/db_config.php`:
+   - `DB_HOST`
+   - `DB_USER`
+   - `DB_PASS`
+   - `DB_NAME`
+5. Ensure upload path exists and is writable:
+   - `uploads/notifications/`
 
-1. Clone/upload to `public_html/exam_cell/`
-2. Copy `db_config.php.example` to `includes/db_config.php`
-3. Edit `includes/db_config.php` with your database credentials
-4. Import `database_setup.sql` to your MySQL database
+## Default Admin Login
 
-### 3. Login
+- Username: `examcell`
+- Password: `password`
 
-1. Update username and password(hashed) in database
+Change this immediately after first login in production.
 
-## Features
+## Routes
 
-- **Admin Dashboard:** Manage notifications with rich editor
-- **PDF Attachments:** Upload & serve PDF files
-- **Public Board:** Embeddable notification widget
-- **Session Management:** Secure authentication with bcrypt
-- **File Handling:** Auto-cleanup for deleted notifications
+- `login.php` → Admin login page
+- `dashboard.php` → Admin dashboard (requires login)
+- `notification_board.php` → Public board
+- `logout.php` → Logout
+- `index.php` → Redirects to `dashboard.php`
 
-## Configuration
+## Embed Public Board
 
-Create `.env` to add:
-
-- Database credentials
-- Upload directory paths
-- Session name
-
-## Deployment
-
-See `.env.example` for configuration variables needed on production
-
-## Step 1 — Set Folder Permissions
-
-In cPanel File Manager, right-click the `uploads/notifications/` folder → **Change Permissions** → set to **755**.
-
----
-
-## Step 2 — Access the Admin Panel
-
-Visit: `https://yourcollegedomain.com/exam_cell/login.php`
-
-Log in with the credentials.
-
----
-
-## Step 3 — Embed the Notification Board on Your Website
-
-Open whichever PHP page you want to show notifications on (e.g., `examinations.php`) and add this one line where you want the board to appear:
+Use this include where you want the board to appear:
 
 ```php
 <?php include 'exam_cell/notification_board.php'; ?>
 ```
 
-That's it. The board will automatically show all active notifications with their PDF links.
+## Deployment Checklist
 
----
-
-## How It Works (Summary)
-
-| Feature                | How                                                    |
-| ---------------------- | ------------------------------------------------------ |
-| Admin login            | Session-based, password hashed with bcrypt             |
-| Post notification      | Form in dashboard → saved to MySQL                     |
-| Upload PDF             | Uploaded to`/uploads/notifications/`, path saved in DB |
-| Public board           | `notification_board.php` reads active rows from DB     |
-| Delete notification    | Removes from DB + deletes PDF file from server         |
-| Hide/show notification | Toggle`is_active` flag (PDF stays on server)           |
-
----
+- Update DB credentials in `includes/db_config.php`
+- Update `UPLOAD_URL` in `includes/db_config.php` to match your domain path
+- Set strong admin password (replace default)
+- Confirm `uploads/notifications/` write permission
+- Verify HTTPS and session behavior on production
+- Confirm `includes/.htaccess` is active on server
 
 ## Troubleshooting
 
-| Problem                      | Solution                                           |
-| ---------------------------- | -------------------------------------------------- |
-| "Database connection failed" | Check credentials in`db_config.php`                |
-| PDF upload fails             | Check`/uploads/notifications/` has 755 permissions |
-| Can't access login page      | Make sure`exam_cell/` is inside `public_html/`     |
-| Login always fails           | Re-run the SQL insert from`database_setup.sql`     |
-
----
+- **Database connection failed** → verify DB constants in `includes/db_config.php`
+- **PDF upload fails** → check folder permission and `UPLOAD_DIR` path
+- **Login fails** → verify admin row exists in `exam_cell_admins`
+- **PDF links broken** → verify `UPLOAD_URL` matches deployed path
 
 ## Security Notes
 
-- Passwords are stored as **bcrypt hashes** — never plain text.
-- The `/includes/` folder is blocked by `.htaccess`.
-- File uploads are restricted to `.pdf` only, with a 5 MB limit.
-- All user input is escaped with `htmlspecialchars()` and `prepared statements`.
+- Passwords are verified via `password_verify` (bcrypt hash in DB)
+- Inputs are sanitized/escaped before output
+- DB inserts use prepared statements
+- Uploads are restricted to PDF and size-limited
+
+## Final Cleanup Notes
+
+- Removed outdated environment-template based instructions from docs
+- README now matches current file structure and active configuration model
+- Keep credentials out of public repositories before production deployment
